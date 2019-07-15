@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width,height=device-height,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+		<title>天安财产保险股份有限公司</title>
+		<meta name="description" content="天安财产保险股份有限公司是中国首家按照现代企业制度和国际标准组建的股份制商业保险公司">
+		<meta name="keywords" content="天安保险_天安_财产保险_车辆保险_责任保险_人身保险">
+		<link rel="stylesheet" href="tianwebsite/mobile/css/common.css">
+		<link rel="stylesheet" href="tianwebsite/mobile/css/m_common.css">
+		<link rel="stylesheet" href="tianwebsite/mobile/css/reset.css">
+		<link rel="stylesheet" type="text/css" href="tianwebsite/mobile/css/iconfont/iconfont.css">
+		<link rel="stylesheet" href="tianwebsite/mobile/css/m_index/car_insurance_quotation.css">
+		<link rel="stylesheet" href="tianwebsite/mobile/css/banner_css/style.css">
+		<script src="tianwebsite/mobile/js/jquery.min.js"></script>
+		<script src="tianwebsite/mobile/js/m_common.js"></script>
+		<script type="text/javascript" src="https://www.95505.com.cn/online/js/jquery-1.6.4.js" charset="UTF-8"></script>
+		<script type="text/javascript" src="https://www.95505.com.cn/online/web/sale/tanocar/js/common.js" charset="UTF-8"></script>
+		<script type="text/javascript" src="https://www.95505.com.cn/online/web/sale/tanocar/js/publicity.js" charset="UTF-8"></script>
+
+		<script type="text/javascript">
+			function activeRadio(e) {
+				if($(e).hasClass('active')) {
+					return;
+				} else {
+					$('#listRoot font.active').removeClass('active');
+					$(e).addClass('active');
+					$(e).find('input[type=radio]').attr('checked', 'checked');
+				}
+			}
+
+			function switchPage(page) {
+				if(page == "1") {
+					$('#page2').hide();
+					$('#fmPayOrder').show();
+				} else {
+					$('#page2').show();
+					$('#fmPayOrder').hide();
+				}
+			}
+
+			function downLoadPolicy() {
+				$("#downLoad_mesg").html("");
+				//保单号不为空
+				if($.trim($("#policyNo").val()) == "") {
+					$("#msg").html("请输入保单号");
+					return;
+				} else {
+					$("#msg").html("");
+				}
+				//证件号不为空
+				if($.trim($("#identifyNumber").val()) == "") {
+					$("#identifyNumberMsg").html("请输入证件号");
+					return;
+				} else {
+					$("#identifyNumberMsg").html("");
+				}
+				var checkAjaxFlag = checkMesgRand(); //校验验证码
+				if(checkAjaxFlag == "true") {
+					$("#rand_tip_mesg").html("");
+				} else {
+					$("#rand_tip_mesg").html("请输入验证码");
+					return;
+				}
+				showOldMask(); //显示遮罩层
+				$.ajax({
+					type: "POST",
+					url: 'https://www.95505.com.cn/online/epolicy/taDownloadPolicycheck.do',
+					dataType: 'text',
+					data: {
+						"policyNo": $("#policyNo").val(),
+						"identifyNumber": $("#identifyNumber").val(),
+					},
+					success: function(data) {
+						$("#randMesg").val("");
+						changeImageMesg();
+						if($.trim(data) == "0fail") {
+							hideOldMask(); //关闭遮罩层
+							$('#riskCode').val('');
+							$("#downLoad_mesg").html("对不起，你输入的保单号暂不支持官网下载电子保单!");
+						} else if($.trim(data) == "00") {
+							hideOldMask(); //关闭遮罩层
+							$('#riskCode').val('');
+							$("#downLoad_mesg").html("对不起，你输入的保单号与被保人证件号不符!");
+						} else if($.trim(data).indexOf('0riskCode') != -1) {
+							var riskCode = $.trim(data).replace('0riskCode=', '');
+							var policyNo = $("#policyNo").val();
+							$('#riskCode2').val(riskCode);
+							$('#identifyNumber2').val($('#identifyNumber').val());
+							$("#policyNo1").val(policyNo);
+							//查询批单列表
+							$.ajax({
+								type: "POST",
+								async: false,
+								url: 'https://www.95505.com.cn/online/epolicy/queryEndorList.do',
+								dataType: 'text',
+								data: {
+									"policyNo": $("#policyNo").val(),
+									"riskCode": riskCode
+								},
+								success: function(data) {
+									hideOldMask(); //关闭遮罩层
+									switchPage('2');
+									$("#listRoot").empty().append(data);
+								},
+								error: function() {
+									hideOldMask(); //关闭遮罩层
+									alert("服务器繁忙");
+								}
+
+							});
+							$("#fmPayOrder").hide();
+							$('#page2').show();
+						} else if($.trim(data) == "0") {
+							hideOldMask(); //关闭遮罩层
+							$('#riskCode').val('');
+							$("#downLoad_mesg").html("对不起，您输入的保单号不存在!");
+						}
+					},
+					error: function() {
+						hideOldMask(); //关闭遮罩层
+						$('#riskCode').val('');
+					}
+
+				});
+
+			}
+
+			/***点击换验证码**/
+			function changeImageMesg() {
+				$("#randImgeMesg").attr("src", "https://www.95505.com.cn/online/com/sinosoft/ebusiness/service/user/personal/creatImage.do?id=" + Math.random(100) * 10);
+			}
+
+			/**ajax验证验证码**/
+			function checkMesgRand() {
+				var checkAjaxMesg = 'false';
+				if($("#randMesg").val() == '') {
+					$("#rand_tip_mesg").html("请输入验证码");
+					changeImageMesg();
+					return checkAjaxMesg;
+				} else {
+					$.ajax({
+						type: "POST",
+						async: false,
+						url: 'https://www.95505.com.cn/online/com/sinosoft/ebusiness/service/user/personal/checkAjax2.do?',
+						dataType: 'text',
+						data: {
+							checkCode: $("#randMesg").val().toUpperCase()
+						},
+						success: function(data) {
+							if($.trim(data) == "success") {
+								checkAjaxMesg = "true";
+							} else {
+								$("#randMesg").val("");
+								$("#rand_tip_mesg").html("请输入正确的验证码");
+								changeImageMesg();
+							}
+						}
+					});
+					return checkAjaxMesg;
+				}
+			}
+
+			function showOldMask() {
+				var bdDiv = $("<div id='oldMask' style='width:100%;  height:100%; position:fixed; top:0; left:0;  background:url(../images/mask.png) repeat; opacity:0.8;  filter:alpha(opacity=80); z-index:699; display:none; zoom:1; overflow:hidden;'></div><div id='oldMaskModel' style='width:100px; height:100px; background:url(../images/dome.gif) center center no-repeat; display:none; position:absolute;margin-left:-50px; margin-top:-50px; z-index:700;'><p style='color: #FFFFFF;font-size: 16px;font-weight: bold;left: -40px;margin-top: 120px;position: relative;width: 200px;'>正在为您玩命加载中...</p></div>");
+
+				//如果页面已经有这个div了就不给body添加了
+				if($("#oldMask").size() == 0 && $("#oldMaskModel").size() == 0) {
+					bdDiv.appendTo(document.body);
+				}
+				var screenWidth = $(window).width();
+				var screenHeight = $(window).height();
+				var scrolltop = $(document).scrollTop();
+				var objLeft = (screenWidth - $("#oldMaskModel").width()) / 2;
+				var objTop = (screenHeight - $("#oldMaskModel").height()) / 2 + scrolltop;
+				$("#oldMaskModel").css({
+					left: objLeft + 'px',
+					top: objTop + 'px'
+				});
+				$("#oldMask").show();
+				$("#oldMaskModel").show();
+				//浏览器有滚动条时的操作
+				$(window).scroll(function() {
+					var obj = $("#oldMaskModel");
+					var screenWidth = $(window).width();
+					var screenHeight = $(window).height();
+					var scrolltop = $(document).scrollTop();
+					objLeft = (screenWidth - obj.width()) / 2;
+					objTop = (screenHeight - obj.height()) / 2 + scrolltop;
+					obj.css({
+						left: objLeft + 'px',
+						top: objTop + 'px'
+					});
+				});
+			}
+			//隐藏遮罩层
+			function hideOldMask() {
+				$("#oldMask").hide();
+				$("#oldMaskModel").hide();
+			}
+		</script>
+
+	</head>
+
+	<body>
+		<div class="wap">
+			<div class="conten">
+				<div class="loading"></div>
+				<header id="m_header"></header>
+				<div class="height_50"></div>
+				<div class="main_content">
+					<!--车险报价-->
+					<!--轮播图——banner-->
+					<div class="integral_mall_banner">
+						<div class="flexslider">
+							<ul class="slides">
+								<li>
+									<a href="#" target="_blank"><img src="tianwebsite/2019-01-03/1546507420111auto_insurance_banner.png" alt="banner" width="100%"></a>
+								</li>
+							</ul>
+						</div>
+						<!--<div class="quotation_content">
+                    <iframe style="height: 450px"
+                            src="https://testow.95505.cn/emshop/app/iframe.html#/iframe/insure-index" scrolling="no"
+                            width="100%" height="100%" frameborder="0"></iframe>
+                </div>-->
+						<div class="mainInfo">
+
+							<div class="InfoLeft" id="page2" style="display:none;">
+								<form id="downloadForm" action="https://www.95505.com.cn/online/epolicy/taDownloadPolicy.do" method="post">
+									<div class="BottomFoot" style="padding: 50px;">
+										<span class="radio" id="listRoot">
+		               <font class="active" >
+			               	<label>
+				                <input type="radio"  value="0" name="policyNo" checked="checked" />
+				   		  	000000000000000000 - 保单
+			    			</label>
+		               </font>
+		               <br/>
+		               <br/>
+		               <font>
+			               	<label>
+						    	<input type="radio"  value="1"
+					    	    name="geTemporary.quoteMain.geBeneficiaryTemporaries[0].benType" />自定义受益人
+			               	</label>
+		               </font>
+		           </span>
+
+										<div class="foorBottom">
+											<span class="center">
+		         		<input type="submit" value="下载电子保单"  class="btnBuy" style="border-radius: 3px;color:#FFF;background: #0359a8" id="btn_buy"  />
+		         		<input type="button" value="返回"  class="btnBuy" style="border-radius: 3px;color:#FFF; margin-top:17px;background: #0359a8" onclick="switchPage('1');"/>
+		         	</span>
+										</div>
+
+										<input type="hidden" id="riskCode2" name="riskCode" value="" />
+										<input type="hidden" name="type" value="1" />
+										<input type="hidden" id="identifyNumber2" name="identifyNumber" value="" />
+										<input type="hidden" id="policyNo1" name="policyNo1" value="" />
+									</div>
+
+								</form>
+							</div>
+
+							<form id="fmPayOrder" action="https://www.95505.com.cn/online/epolicy/taDownloadPolicy.do" method="post" target="_blank">
+								<div class="InfoLeft">
+									<div class="BottomFoot" style="width:518px;height: 220px;">
+
+										<div style="padding: 20px;">
+											<div style="text-align: right; float: left; width: 100px;height: 20px;line-height: 24px;">
+												<font style="color: red;">*</font>保单号码：
+											</div>
+											<div style="float: left;">
+												<input type="text" placeholder="输入官网出具的保单号" onfocus="if(placeholder=='输入官网出具的保单号') {placeholder=''}" onblur="if (value=='') {placeholder='输入官网出具的保单号'}" name="policyNo" id="policyNo" style="height: 20px;font-size: 12px;color: #a7a7a7; " maxlength="22" ondragenter="return false" />
+											</div>
+											<span id="msg" style="color:red;"></span>
+											<br/>
+										</div>
+
+										<div style="padding: 20px;">
+											<div style="text-align: right; float: left;width: 100px;height: 20px;line-height: 24px;">
+												<font style="color: red;">*</font>证件号码：
+											</div>
+											<div style="float: left;">
+												<input type="text" placeholder="输入保单中被保险人的证件号码" onfocus="if(placeholder=='输入保单中被保险人的证件号码') {placeholder=''}" onblur="if (value=='') {placeholder='输入保单中被保险人的证件号码'}" name="identifyNumber" id="identifyNumber" style="height: 20px;font-size: 12px;color: #a7a7a7;" />
+											</div>
+											<span id="identifyNumberMsg" style="color:red;"></span>
+											<br/>
+										</div>
+
+										<div style="padding: 20px; ">
+											<div style="text-align: right; float: left;width: 100px;height: 20px;line-height: 24px;">
+												<font style="color: red;">*</font>验证码：
+											</div>
+											<div style="float: left;">
+												<input type="text" placeholder="请输入验证码" onfocus="if(placeholder=='请输入验证码') {placeholder=''}" onblur="if (value=='') {placeholder='请输入验证码'}" id="randMesg" maxlength="22" style="width: 90px; height: 20px;font-size: 12px;color: #a7a7a7;" />
+											</div>
+											<div style="float: left; margin-left: 5px;">
+												<img style="height: 25px" src="https://www.95505.cn/online/com/sinosoft/ebusiness/service/user/personal/creatImage.do" onclick="changeImageMesg();" id="randImgeMesg" />
+											</div>
+											<div id="">
+												<a onclick="changeImageMesg();" style="cursor: pointer;">换一张</a>
+											</div>
+										</div>
+
+										<div style="padding: 10px 0; margin-top: 5px;">
+											<input type="button" value="查询" class="btnBuy" onclick="downLoadPolicy()" style="border:0px; border-radius: 3px;display: inline-block; font-size: 16px; margin-left: 120px; color: #fff; width: 200px;height: 20px;background-color: #0359a8" id="btn_buy" ; />
+										</div>
+
+									</div>
+									<div id="secondToPay" style="color: red;font-weight: bold;" align="center"></div>
+									<div id="downLoad_mesg" style="color: red;font-weight: bold;width: 550px;margin-top: 30px;" align="center"></div>
+									<input type="hidden" name="type" value="1" />
+									<input type="hidden" id="riskCode" name="riskCode" value="" />
+
+								</div>
+							</form>
+
+						</div>
+
+					</div>
+				</div>
+			</div>
+			<footer id="m_footer" class="buttom"></footer>
+		</div>
+		<script src="tianwebsite/mobile/js/m_claim.js"></script>
+		<script type="text/javascript" src="tianwebsite/mobile/js/banner_js/jquery.flexslider-min.js"></script>
+		<script type="text/javascript">
+			$(document).ready(function() {
+				$('.flexslider').flexslider({
+					directionNav: true,
+					pauseOnAction: false
+				});
+			});
+		</script>
+	</body>
+
+</html>
